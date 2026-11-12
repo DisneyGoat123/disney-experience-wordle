@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Disney Experience Worldle</title>
+  <style>
+    :root{
+      --bg:#f4f7fb;
+      --card:#ffffff;
+      --text:#1d1d1d;
+      --muted:#5c6470;
+      --line:#d9dee7;
+      --primary:#0b5fff;
+      --success:#6aaa64;
+      --danger:#787c7e;
+      --warning:#c9b458;
+      --dark:#1d1d1d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family: Arial, sans-serif;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      padding:24px 16px 40px;
+    }
+
+    .page{
+      width:min(1100px, 100%);
+    }
+
+    h1{
+      text-align:center;
+      margin:0 0 12px;
+      font-size: clamp(2rem, 4vw, 3rem);
+    }
+
+    .subtitle{
+      text-align:center;
+      color:var(--muted);
+      margin:0 auto 20px;
+      max-width:760px;
+      line-height:1.5;
+      font-size:1.05rem;
+    }
+
+    #controls{
+      display:flex;
+      justify-content:center;
+      gap:12px;
+      flex-wrap:wrap;
+      margin:20px 0;
+    }
+
+    input{
+      width:min(420px, 80vw);
+      padding:14px 16px;
+      font-size:1rem;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#fff;
+    }
+
+    button{
+      padding:14px 18px;
+      border:none;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:1rem;
+      font-weight:700;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:hover{
+      transform: translateY(-1px);
+    }
+
+    .primary-btn{
+      background:var(--primary);
+      color:white;
+    }
+
+    .secondary-btn{
+      background:#e8edf7;
+      color:var(--text);
+    }
+
+    .info{
+      text-align:center;
+      margin:18px 0 10px;
+      font-size:1.1rem;
+      font-weight:600;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:12px;
+      background:var(--card);
+      border-radius:12px;
+      overflow:hidden;
+      box-shadow:0 8px 24px rgba(10,20,40,0.05);
+    }
+
+    th, td{
+      border:1px solid var(--line);
+      padding:12px 10px;
+      text-align:center;
+      vertical-align:middle;
+    }
+
+    th{
+      background:var(--dark);
+      color:white;
+      font-weight:700;
+    }
+
+    .correct{ background:var(--success); color:white; font-weight:bold; }
+    .wrong{ background:var(--danger); color:white; font-weight:bold; }
+    .partial{ background:var(--warning); color:white; font-weight:bold; }
+
+    #message{
+      text-align:center;
+      font-size:clamp(1.2rem, 2vw, 2rem);
+      margin-top:22px;
+      font-weight:bold;
+      min-height:48px;
+    }
+
+    .share-wrap{
+      display:flex;
+      justify-content:center;
+      margin-top:16px;
+    }
+
+    #shareBtn{
+      display:none;
+      background:#111827;
+      color:white;
+    }
+
+    #resetBtn{
+      margin-top:12px;
+      display:none;
+    }
+
+    @media (max-width: 600px){
+      #controls{
+        flex-direction:column;
+        align-items:stretch;
+      }
+      input, button{
+        width:100%;
+      }
+      th, td{
+        padding:8px 6px;
+        font-size:0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Disney Experience Worldle</h1>
+
+    <p class="subtitle">
+      Guess the Disney World attraction, restaurant, pool, show, transportation system,
+      or experience in 10 guesses.
+    </p>
+
+    <div id="controls">
+      <input id="guessInput" placeholder="Type a Disney World guess" aria-label="Disney World guess" />
+      <button class="primary-btn" onclick="submitGuess()">Guess</button>
+    </div>
+
+    <div class="info">
+      Guesses Remaining: <span id="remaining">10</span>
+    </div>
+
+    <table aria-live="polite">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Location</th>
+          <th>Type</th>
+          <th>Opened</th>
+        </tr>
+      </thead>
+      <tbody id="results"></tbody>
+    </table>
+
+    <div id="message" aria-live="polite"></div>
+
+    <div class="share-wrap">
+      <button id="shareBtn" class="primary-btn" onclick="shareResults()">Share Results</button>
+    </div>
+
+    <div class="share-wrap">
+      <button id="resetBtn" class="secondary-btn" onclick="resetGame()">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    const experiences = [
+      { name: "Space Mountain", category: "Attraction", location: "Magic Kingdom", type: "Thrill Ride", year: 1975 },
+      { name: "Haunted Mansion", category: "Attraction", location: "Magic Kingdom", type: "Dark Ride", year: 1971 },
+      { name: "Pirates of the Caribbean", category: "Attraction", location: "Magic Kingdom", type: "Boat Ride", year: 1973 },
+      { name: "Big Thunder Mountain Railroad", category: "Attraction", location: "Magic Kingdom", type: "Roller Coaster", year: 1980 },
+      { name: "Jungle Cruise", category: "Attraction", location: "Magic Kingdom", type: "Boat Ride", year: 1971 },
+      { name: "TRON Lightcycle Run", category: "Attraction", location: "Magic Kingdom", type: "Roller Coaster", year: 2023 },
+
+      { name: "Soarin' Around the World", category: "Attraction", location: "EPCOT", type: "Simulator", year: 2016 },
+      { name: "Spaceship Earth", category: "Attraction", location: "EPCOT", type: "Dark Ride", year: 1982 },
+      { name: "Test Track", category: "Attraction", location: "EPCOT", type: "Thrill Ride", year: 1999 },
+      { name: "Frozen Ever After", category: "Attraction", location: "EPCOT", type: "Boat Ride", year: 2016 },
+      { name: "Remy's Ratatouille Adventure", category: "Attraction", location: "EPCOT", type: "Trackless Ride", year: 2021 },
+
+      { name: "Rise of the Resistance", category: "Attraction", location: "Hollywood Studios", type: "Trackless Ride", year: 2019 },
+      { name: "Slinky Dog Dash", category: "Attraction", location: "Hollywood Studios", type: "Roller Coaster", year: 2018 },
+      { name: "Tower of Terror", category: "Attraction", location: "Hollywood Studios", type: "Drop Ride", year: 1994 },
+      { name: "Rock 'n' Roller Coaster", category: "Attraction", location: "Hollywood Studios", type: "Roller Coaster", year: 1999 },
+
+      { name: "Avatar Flight of Passage", category: "Attraction", location: "Animal Kingdom", type: "Simulator", year: 2017 },
+      { name: "Na'vi River Journey", category: "Attraction", location: "Animal Kingdom", type: "Boat Ride", year: 2017 },
+      { name: "Expedition Everest", category: "Attraction", location: "Animal Kingdom", type: "Roller Coaster", year: 2006 },
+      { name: "Kilimanjaro Safaris", category: "Attraction", location: "Animal Kingdom", type: "Safari", year: 1998 },
+
+      { name: "California Grill", category: "Restaurant", location: "Contemporary Resort", type: "Signature Dining", year: 1995 },
+      { name: "Chef Mickey's", category: "Restaurant", location: "Contemporary Resort", type: "Character Dining", year: 1971 },
+      { name: "Topolino's Terrace", category: "Restaurant", location: "Riviera Resort", type: "Signature Dining", year: 2019 },
+      { name: "Boma", category: "Restaurant", location: "Animal Kingdom Lodge", type: "Buffet", year: 2001 },
+      { name: "Sanaa", category: "Restaurant", location: "Animal Kingdom Lodge", type: "Table Service", year: 2009 },
+      { name: "'Ohana", category: "Restaurant", location: "Polynesian Resort", type: "Character Dining", year: 1995 },
+      { name: "Kona Cafe", category: "Restaurant", location: "Polynesian Resort", type: "Table Service", year: 1985 },
+      { name: "Cape May Cafe", category: "Restaurant", location: "Beach Club Resort", type: "Buffet", year: 1990 },
+      { name: "Steakhouse 71", category: "Restaurant", location: "Contemporary Resort", type: "Table Service", year: 2021 },
+
+      { name: "Fantasmic!", category: "Show", location: "Hollywood Studios", type: "Nighttime Show", year: 1998 },
+      { name: "Festival of the Lion King", category: "Show", location: "Animal Kingdom", type: "Stage Show", year: 1998 },
+      { name: "Finding Nemo: The Big Blue and Beyond!", category: "Show", location: "Animal Kingdom", type: "Stage Show", year: 2022 },
+      { name: "Hoop-Dee-Doo Musical Revue", category: "Show", location: "Fort Wilderness", type: "Dinner Show", year: 1974 },
+
+      { name: "Disney Skyliner", category: "Transportation", location: "Resort Area", type: "Gondola", year: 2019 },
+      { name: "Resort Monorail", category: "Transportation", location: "Magic Kingdom Area", type: "Monorail", year: 1971 },
+      { name: "Friendship Boat", category: "Transportation", location: "EPCOT Area", type: "Boat", year: 1990 },
+
+      { name: "Stormalong Bay", category: "Pool", location: "Beach Club Resort", type: "Pool", year: 1990 },
+      { name: "Lava Pool", category: "Pool", location: "Polynesian Resort", type: "Pool", year: 1971 },
+      { name: "Big Blue Pool", category: "Pool", location: "Art of Animation", type: "Pool", year: 2012 },
+      { name: "Dig Site Pool", category: "Pool", location: "Coronado Springs", type: "Pool", year: 1997 }
+    ];
+
+    const maxGuesses = 10;
+
+    let answer = randomExperience();
+    let guesses = 0;
+    let gameOver = false;
+    let shareText = "";
+
+    function randomExperience() {
+      return experiences[Math.floor(Math.random() * experiences.length)];
+    }
+
+    function styleMatch(a, b) {
+      return a === b ? "correct" : "wrong";
+    }
+
+    function yearHint(year) {
+      if (year === answer.year) {
+        return { text: year, className: "correct" };
+      }
+      return {
+        text: year < answer.year ? year + " ↑" : year + " ↓",
+        className: "wrong"
+      };
+    }
+
+    function submitGuess() {
+      if (gameOver) return;
+
+      const value = document.getElementById("guessInput").value.trim();
+      const guess = experiences.find(
+        x => x.name.toLowerCase() === value.toLowerCase()
+      );
+
+      if (!guess) {
+        alert("Not found. Try an exact Disney World name from the list.");
+        return;
+      }
+
+      guesses++;
+      const yearInfo = yearHint(guess.year);
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${guess.name}</td>
+        <td class="${styleMatch(guess.category, answer.category)}">${guess.category}</td>
+        <td class="${styleMatch(guess.location, answer.location)}">${guess.location}</td>
+        <td class="${styleMatch(guess.type, answer.type)}">${guess.type}</td>
+        <td class="${yearInfo.className}">${yearInfo.text}</td>
+      `;
+      document.getElementById("results").prepend(row);
+
+      document.getElementById("remaining").textContent = maxGuesses - guesses;
+
+      if (guess.name === answer.name) {
+        finishGame(true);
+        return;
+      }
+
+      if (guesses >= maxGuesses) {
+        finishGame(false);
+        return;
+      }
+
+      document.getElementById("guessInput").value = "";
+    }
+
+    function finishGame(win) {
+      gameOver = true;
+      document.getElementById("guessInput").disabled = true;
+      document.getElementById("guessInput").value = "";
+
+      if (win) {
+        document.getElementById("message").textContent = `🎉 You solved it in ${guesses} guesses!`;
+        shareText = `Disney Experience Worldle ✅ ${guesses}/${maxGuesses}`;
+      } else {
+        document.getElementById("message").textContent = `❌ Out of guesses. Answer: ${answer.name}`;
+        shareText = `Disney Experience Worldle ❌ X/${maxGuesses}`;
+      }
+
+      document.getElementById("shareBtn").style.display = "inline-block";
+      document.getElementById("resetBtn").style.display = "inline-block";
+    }
+
+    async function shareResults() {
+      const text = shareText || `Disney Experience Worldle`;
+
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: "Disney Experience Worldle",
+            text
+          });
+          return;
+        }
+      } catch (err) {
+        // If share is canceled, fall back to clipboard
+      }
+
+      try {
+        await navigator.clipboard.writeText(text);
+        alert("Results copied to clipboard!");
+      } catch (err) {
+        alert("Copy failed. Your results are: " + text);
+      }
+    }
+
+    function resetGame() {
+      answer = randomExperience();
+      guesses = 0;
+      gameOver = false;
+      shareText = "";
+      document.getElementById("results").innerHTML = "";
+      document.getElementById("remaining").textContent = maxGuesses;
+      document.getElementById("message").textContent = "";
+      document.getElementById("guessInput").disabled = false;
+      document.getElementById("guessInput").value = "";
+      document.getElementById("shareBtn").style.display = "none";
+      document.getElementById("resetBtn").style.display = "none";
+      document.getElementById("guessInput").focus();
+    }
+
+    document.getElementById("guessInput").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        submitGuess();
+      }
+    });
+  </script>
+</body>
+</html>
